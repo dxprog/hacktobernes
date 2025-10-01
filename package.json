@@ -15,7 +15,7 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -R static/* dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
