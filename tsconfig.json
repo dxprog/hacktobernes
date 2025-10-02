@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
-    "outDir": "dist",
+    "outFile": "dist/index.js",
     "rootDir": "src",
-    "module": "esnext",
-    "target": "es2024"
+    "sourceMap": true,
+    "module": "amd",
+    "target": "es6"
   },
   "include": ["src"]
 }
