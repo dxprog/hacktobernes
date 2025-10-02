@@ -1,4 +1,5 @@
 import { CartUploader } from './uploader';
+import { Cart } from './cart';
 
 const ROM_STORAGE_KEY = 'current-rom';
 
@@ -22,8 +23,9 @@ export class CartLoader {
     this.loadRomData(encodedRomData);
   }
 
-  loadRomData(encodedRomData: string) {
-    console.log('encoded rom data', encodedRomData);
+  async loadRomData(encodedRomData: string) {
+    const cart = new Cart();
+    await cart.loadEncodedRom(encodedRomData);
   }
 
   hasSavedRom(): boolean {
