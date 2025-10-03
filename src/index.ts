@@ -2,9 +2,14 @@ import { Cart } from './cart/cart';
 import { CartLoader } from './cart/loader';
 import { System } from './system/system';
 
+const STOP_CLOCK = 100;
+
 class App {
   private system: System;
   private cartLoader: CartLoader;
+  private clockInterval: number;
+  private clocks: number = 0;
+  private start: number;
 
   constructor() {
     this.cartLoader = new CartLoader(
@@ -15,6 +20,18 @@ class App {
   handleCartLoaded(cart: Cart) {
     console.log('cart loaded');
     this.system = new System(cart);
+    this.clockInterval = setInterval(this.clock.bind(this), 0);
+    this.start = Date.now();
+  }
+
+  clock() {
+    this.clocks++;
+    if (this.clocks >= STOP_CLOCK) {
+      clearInterval(this.clockInterval);
+      console.log(Date.now() - this.start);
+    }
+
+    this.system.clock();
   }
 }
 

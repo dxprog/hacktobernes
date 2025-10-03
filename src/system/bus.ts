@@ -27,14 +27,16 @@ export class Bus {
   }
 
   setBusDirection(busDirection: BusDirection) {
-    this.direction = busDirection;
+    if (this.direction !== busDirection) {
+      this.direction = busDirection;
 
-    // if the direction is read, populate the value with whatever's at that addy
-    // maybe at some point I'll implement the 74ls139/clock2 logic for proper timing...
-    if (this.direction === 'read') {
-      this.readValueAtAddress();
-    } else {
-      this.writeValueToAddress();
+      // if the direction is read, populate the value with whatever's at that addy
+      // maybe at some point I'll implement the 74ls139/clock2 logic for proper timing...
+      if (this.direction === 'read') {
+        this.readValueAtAddress();
+      } else {
+        this.writeValueToAddress();
+      }
     }
   }
 
@@ -44,13 +46,15 @@ export class Bus {
    * @param address The address to set
    */
   setAddr(address: number) {
-    this.address = address;
+    if (this.address !== address) {
+      this.address = address;
 
-    // if the bus is reading, read whatever's at that address
-    if (this.direction === 'read') {
-      this.readValueAtAddress();
-    } else {
-      this.writeValueToAddress();
+      // if the bus is reading, read whatever's at that address
+      if (this.direction === 'read') {
+        this.readValueAtAddress();
+      } else {
+        this.writeValueToAddress();
+      }
     }
   }
 
