@@ -3,6 +3,7 @@ import { Chip } from "../common/chip";
 type ChipSelect = {
   addressMask: number;
   chip: Chip;
+  startOfMemoryMap: boolean;
 }
 
 type BusDirection = 'read' | 'write';
@@ -13,15 +14,15 @@ export class Bus {
   private addressChipMap: ChipSelect[] = [];
   private address: number;
   private value: number;
-  private direction: BusDirection;
+  private direction: BusDirection = 'read';
 
   constructor() {
     this.value = this.getFloatingValue();
   }
 
-  attachChip(addressMask: number, chip: Chip) {
+  attachChip(addressMask: number, chip: Chip, startOfMemoryMap: boolean = false) {
     this.addressChipMap.push({
-      addressMask, chip
+      addressMask, chip, startOfMemoryMap
     });
   }
 
@@ -53,20 +54,27 @@ export class Bus {
     }
   }
 
+  private isInRange(chipSelect: ChipSelect) {
+    return (
+      (this.address & chipSelect.addressMask) > 0 ||
+      this.address === 0 && chipSelect.startOfMemoryMap
+    );
+  }
+
   private readValueAtAddress() {
     let value = this.getFloatingValue();
-    this.addressChipMap.forEach(({ addressMask, chip }) => {
-      if ((this.address & addressMask) > 0) {
-        value = chip.read(this.address);
+    this.addressChipMap.forEach(chipSelect => {
+      if (this.isInRange(chipSelect)) {
+        value = chipSelect.chip.read(this.address);
       }
     });
     this.value = value;
   }
 
   private writeValueToAddress() {
-    this.addressChipMap.forEach(({ addressMask, chip }) => {
-      if ((this.address & addressMask) > 0) {
-        chip.write(this.address, this.value);
+    this.addressChipMap.forEach(chipSelect => {
+      if (this.isInRange(chipSelect)) {
+        chipSelect.chip.write(this.address, this.value);
       }
     });
   }
