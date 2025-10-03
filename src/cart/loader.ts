@@ -6,9 +6,11 @@ const ROM_STORAGE_KEY = 'current-rom';
 export class CartLoader {
   private parentEl: HTMLElement;
   private uploader: CartUploader;
+  private loadedCallback: Function;
 
-  constructor(parentEl) {
+  constructor(parentEl, loadedCallback: Function) {
     this.parentEl = parentEl;
+    this.loadedCallback = loadedCallback;
     this.uploader = new CartUploader(parentEl, this.handleRomUploaded.bind(this));
 
     if (!this.hasSavedRom()) {
@@ -26,6 +28,7 @@ export class CartLoader {
   async loadRomData(encodedRomData: string) {
     const cart = new Cart();
     await cart.loadEncodedRom(encodedRomData);
+    this.loadedCallback(cart);
   }
 
   hasSavedRom(): boolean {

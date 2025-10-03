@@ -1,8 +1,12 @@
+import { Chip } from "../common/chip";
+
 const HEADER_IDENT = 0x4e45531a;
 const HEADER_SIZE = 16;
 const ONE_K = 1024;
 const PRG_BANK_SIZE = ONE_K * 16;
 const CHR_BANK_SIZE = ONE_K * 8;
+// for any bus address that rolls in, we only care about the lower fifteen bits
+const ADDRESS_MASK = 0x7fff;
 
 // reset vectors for the 6502 sit at the top of memory of the system
 // memory map. the reset vector will be at the top of the first bank
@@ -17,7 +21,7 @@ export enum MirroringDirection {
   Vertical = 1
 };
 
-export class Cart {
+export class Cart extends Chip {
   public prgData: Uint8Array;
   public chrData: Uint8Array;
   public numPrgBanks: number;
@@ -76,11 +80,18 @@ export class Cart {
 
     // this will all move to the CPU when I have that, but it's useful for debugging right now
     const prgDataView = new DataView(this.prgData.buffer);
-    console.log(this.prgData);
     this.resetVector = prgDataView.getUint16(RESET_VECTOR_ADDR, true);
     this.nmiVector = prgDataView.getUint16(NMI_VECTOR_ADDR, true);
     this.irqVector = prgDataView.getUint16(IRQ_VECTOR_ADDR, true);
 
     console.log('reset vector', this.resetVector.toString(16));
+  }
+
+  read(address: number): number {
+    return this.prgData[address & ADDRESS_MASK];
+  }
+
+  write(address: number, value: number) {
+    // you can't write to ROM... until I add mapper support
   }
 }
