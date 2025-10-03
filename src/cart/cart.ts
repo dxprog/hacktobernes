@@ -8,14 +8,6 @@ const CHR_BANK_SIZE = ONE_K * 8;
 // for any bus address that rolls in, we only care about the lower fifteen bits
 const ADDRESS_MASK = 0x7fff;
 
-// reset vectors for the 6502 sit at the top of memory of the system
-// memory map. the reset vector will be at the top of the first bank
-// of PRG ROM. PRG ROM starts at 0x8000. therefore, all these addresses
-// will be where the CPU would look minus 0x8000
-const NMI_VECTOR_ADDR = 0x7ffa;
-const RESET_VECTOR_ADDR = 0x7ffc;
-const IRQ_VECTOR_ADDR = 0x7ffe;
-
 export enum MirroringDirection {
   Horizontal = 0,
   Vertical = 1
@@ -29,9 +21,6 @@ export class Cart extends Chip {
   public mirroringType: MirroringDirection;
   public hasSram: boolean;
   public mapperId: number;
-  public nmiVector: number;
-  public resetVector: number;
-  public irqVector: number;
 
   async loadEncodedRom(encodedRomData: string) {
     try {
@@ -77,18 +66,9 @@ export class Cart extends Chip {
     // duplicate all of the rom data so we can properly index into it
     this.prgData = new Uint8Array(data.subarray(HEADER_SIZE, HEADER_SIZE + prgDataSize));
     this.chrData = new Uint8Array(data.subarray(HEADER_SIZE + prgDataSize, HEADER_SIZE + prgDataSize + chrDataSize));
-
-    // this will all move to the CPU when I have that, but it's useful for debugging right now
-    const prgDataView = new DataView(this.prgData.buffer);
-    this.resetVector = prgDataView.getUint16(RESET_VECTOR_ADDR, true);
-    this.nmiVector = prgDataView.getUint16(NMI_VECTOR_ADDR, true);
-    this.irqVector = prgDataView.getUint16(IRQ_VECTOR_ADDR, true);
-
-    console.log('reset vector', this.resetVector.toString(16));
   }
 
   read(address: number): number {
-    console.log('reading cart');
     return this.prgData[address & ADDRESS_MASK];
   }
 

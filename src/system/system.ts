@@ -1,5 +1,6 @@
 import { Cart } from "../cart/cart";
 import { Bus } from "./bus";
+import { Cpu } from "./cpu";
 import { Wram } from "./wram";
 
 // wram gets mirrored a whole bunch and sits at the beginning of memory
@@ -11,13 +12,16 @@ export class System {
   private bus: Bus;
   private cart: Cart;
   private wram: Wram;
+  private cpu: Cpu;
 
   constructor(cart: Cart) {
     this.bus = new Bus();
     this.wram = new Wram();
+    this.cpu = new Cpu(this.bus);
     this.cart = cart;
 
     this.buildMemoryMap();
+    this.cpu.reset();
   }
 
   private buildMemoryMap() {
@@ -35,5 +39,9 @@ export class System {
     console.log(this.bus.getBusValue());
     this.bus.setAddr(0xFFFD);
     console.log(this.bus.getBusValue());
+  }
+
+  public clock() {
+    this.cpu.clock();
   }
 }
