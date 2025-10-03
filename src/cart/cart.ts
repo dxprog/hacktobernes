@@ -88,6 +88,7 @@ export class Cart extends Chip {
   }
 
   read(address: number): number {
+    console.log('reading cart');
     return this.prgData[address & ADDRESS_MASK];
   }
 
