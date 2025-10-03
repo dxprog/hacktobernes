@@ -51,7 +51,21 @@ export class Cpu {
       [0x78]: () => this.setFlag(SW_FLAG_INT_DISABLE, 1),
       [0xD8]: () => this.setFlag(SW_FLAG_BCD_ENABLE, 0),
       // LDA
-      [0xA9]: () => this.lda(this.readUint8()), // immediate
+      [0xA9]: () => this.lda(this.addrImmediate()),
+      [0xA5]: () => this.lda(this.read(this.addrZeroPage())),
+      [0xAD]: () => this.lda(this.read(this.addrAbsolute())),
+
+      // STA
+      [0X85]: () => this.sta(this.addrZeroPage()),
+      [0x8D]: () => this.sta(this.addrAbsolute()),
+
+      // LDX
+      [0xA2]: () => this.ldx(this.addrImmediate()),
+      [0xA6]: () => this.ldx(this.read(this.addrZeroPage())),
+      [0xAE]: () => this.ldx(this.read(this.addrAbsolute())),
+
+      // TXS
+      [0x9A]: () => this.regSP = this.regX,
     };
   }
 
@@ -95,9 +109,10 @@ export class Cpu {
   }
 
   private readUint8(): number {
+    this.instructionCounter++;
     this.bus.setBusDirection('read');
+    this.bus.setAddr((this.regPC++) & MAX_ADDRESS);
     const value = this.bus.getBusValue();
-    this.bus.setAddr((++this.regPC) & MAX_ADDRESS);
     return value;
   }
 
@@ -112,11 +127,48 @@ export class Cpu {
     this.regSW &= bit;
   }
 
+  // memory routines
+  private read(address: number): number {
+    this.bus.setBusDirection('read');
+    this.bus.setAddr(address);
+    return this.bus.getBusValue();
+  }
+
+  private write(address: number, value: number) {
+    this.bus.setBusDirection('write');
+    this.bus.setAddr(address);
+    this.bus.setBusValue(value);
+  }
+
+  private addrImmediate() {
+    return this.readUint8();
+  }
+
+  private addrZeroPage() {
+    return this.readUint8();
+  }
+
+  private addrAbsolute() {
+    return this.readUint16();
+  }
+
   // instructions
 
   private lda(value: number) {
     this.instructionCounter++;
     this.regA = value;
+  }
+
+  private sta(address: number) {
+    this.instructionCounter++;
+    this.bus.setAddr(address);
+    this.bus.setBusDirection('write');
+    this.bus.setBusValue(this.regA);
+  }
+
+  private ldx(value: number) {
+    this.instructionCounter++;
+    this.regX = value;
   }
 
 }

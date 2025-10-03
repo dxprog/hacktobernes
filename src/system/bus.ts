@@ -1,4 +1,5 @@
 import { Chip } from "../common/chip";
+import { MAX_ADDRESS } from "../common/constants";
 
 type ChipSelect = {
   addressMask: number;
@@ -47,7 +48,7 @@ export class Bus {
    */
   setAddr(address: number) {
     if (this.address !== address) {
-      this.address = address;
+      this.address = address & MAX_ADDRESS;
 
       // if the bus is reading, read whatever's at that address
       if (this.direction === 'read') {
