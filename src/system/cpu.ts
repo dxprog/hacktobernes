@@ -1,4 +1,4 @@
-import { MAX_ADDRESS } from '../common/constants';
+import { MAX_ADDRESS, MAX_BYTE } from '../common/constants';
 import { Bus } from './bus';
 
 const NMI_VECTOR_ADDR = 0xfffa;
@@ -25,11 +25,36 @@ type ProcessorFlag = (
 export class Cpu {
   private bus: Bus;
   // accumulator
-  private regA: number;
+  private _regA: number;
+  private set regA(value: number) {
+    this._regA = value;
+    this.setRegisterFlags(value);
+  }
+  private get regA(): number {
+    return this._regA;
+  }
+
   // X register
-  private regX: number;
+  private _regX: number;
+  private set regX(value: number) {
+    this._regX = value;
+    this.setRegisterFlags(value);
+  }
+  private get regX(): number {
+    return this._regX;
+  }
+
   // Y register
-  private regY: number;
+  private _regY: number;
+  private set regY(value: number) {
+    this._regY = value;
+    this.setRegisterFlags(value);
+  }
+  private get regY(): number {
+    return this._regY;
+  }
+
+
   // program counter
   private regPC: number;
   // status word
@@ -50,8 +75,33 @@ export class Cpu {
     this.opCodeMap = {
       [0x78]: () => this.setFlag(SW_FLAG_INT_DISABLE, 1),
       [0xD8]: () => this.setFlag(SW_FLAG_BCD_ENABLE, 0),
+
       // LDA
-      [0xA9]: () => this.lda(this.readUint8()), // immediate
+      [0xA9]: () => this.regA = this.addrImmediate(),
+      [0xA5]: () => this.regA = this.read(this.addrZeroPage()),
+      [0xAD]: () => this.regA = this.read(this.addrAbsolute()),
+
+      // LDY
+      [0xAC]: () => this.regY = this.read(this.addrAbsolute()),
+
+      // STA
+      [0X85]: () => this.sta(this.addrZeroPage()),
+      [0x8D]: () => this.sta(this.addrAbsolute()),
+
+      // LDX
+      [0xA2]: () => this.regX = this.addrImmediate(),
+      [0xA6]: () => this.regX = this.read(this.addrZeroPage()),
+      [0xAE]: () => this.regX = this.read(this.addrAbsolute()),
+
+      // AND
+      [0x29]: () => this.and(this.addrImmediate()),
+
+      // TXS
+      [0x9A]: () => this.regSP = this.regX,
+
+      // Branch instructions
+      [0x10]: () => this.branch((this.regSW & SW_FLAG_NEGATIVE) === 0),
+      [0xD0]: () => this.branch((this.regSW & SW_FLAG_ZERO) === 0),
     };
   }
 
@@ -83,7 +133,7 @@ export class Cpu {
     if (this.opCodeMap[opcode]) {
       this.opCodeMap[opcode]();
     } else {
-      console.log('unknown opcode: ', opcode.toString(16));
+      console.log('unknown opcode: ', (this.regPC - 1).toString(16), opcode.toString(16));
     }
   }
 
@@ -95,9 +145,10 @@ export class Cpu {
   }
 
   private readUint8(): number {
+    this.instructionCounter++;
     this.bus.setBusDirection('read');
+    this.bus.setAddr((this.regPC++) & MAX_ADDRESS);
     const value = this.bus.getBusValue();
-    this.bus.setAddr((++this.regPC) & MAX_ADDRESS);
     return value;
   }
 
@@ -107,16 +158,65 @@ export class Cpu {
     return (highByte << 8) | lowByte;
   }
 
+  private toInt8(value: number) {
+    const byte = (value >>> 0) & MAX_BYTE;
+    return byte >= 0x80 ? byte - 0x100 : byte;
+  }
+
   private setFlag(flag: ProcessorFlag, value: number) {
     const bit = (value & 0x1) << flag;
     this.regSW &= bit;
   }
 
+  // memory routines
+  private read(address: number): number {
+    this.bus.setBusDirection('read');
+    this.bus.setAddr(address);
+    return this.bus.getBusValue();
+  }
+
+  private write(address: number, value: number) {
+    this.bus.setBusDirection('write');
+    this.bus.setAddr(address);
+    this.bus.setBusValue(value);
+  }
+
+  private addrImmediate() {
+    return this.readUint8();
+  }
+
+  private addrZeroPage() {
+    return this.readUint8();
+  }
+
+  private addrAbsolute() {
+    return this.readUint16();
+  }
+
+  private setRegisterFlags(value) {
+    this.setFlag(SW_FLAG_NEGATIVE, (value & 0x80) ? 1 : 0);
+    this.setFlag(SW_FLAG_ZERO, !value ? 1 : 0);
+  }
+
   // instructions
 
-  private lda(value: number) {
+  private sta(address: number) {
     this.instructionCounter++;
-    this.regA = value;
+    this.bus.setAddr(address);
+    this.bus.setBusDirection('write');
+    this.bus.setBusValue(this.regA);
+  }
+
+  private and(value: number) {
+    this.regA = this.regA & value;
+  }
+
+  private branch(shouldBranch: boolean) {
+    const offset = this.readUint8();
+    if (shouldBranch) {
+      this.instructionCounter++;
+      this.regPC = this.regPC + this.toInt8(offset);
+    }
   }
 
 }
