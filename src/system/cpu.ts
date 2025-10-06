@@ -8,18 +8,21 @@ const IRQ_VECTOR_ADDR = 0xfffe;
 // status flag masks
 const SW_DEFAULT = 0x20;
 const SW_FLAG_CARRY = 0x01;
-const SW_FLAG_ZERO = 0x02;
+const SW_FLAG_ZERO_BIT = 1;
+const SW_FLAG_ZERO_MASK = 1 << SW_FLAG_ZERO_BIT;
 const SW_FLAG_INT_DISABLE = 0x04;
 const SW_FLAG_BCD_ENABLE = 0x08;
-const SW_FLAG_OVERFLOW = 0x40;
-const SW_FLAG_NEGATIVE = 0x80;
+const SW_FLAG_OVERFLOW_BIT = 6;
+const SW_FLAG_OVERFLOW_MASK = 1 << SW_FLAG_OVERFLOW_BIT;
+const SW_FLAG_NEGATIVE_BIT = 7;
+const SW_FLAG_NEGATIVE_MASK = 1 << SW_FLAG_NEGATIVE_BIT;
 type ProcessorFlag = (
   typeof SW_FLAG_CARRY |
-  typeof SW_FLAG_ZERO |
+  typeof SW_FLAG_ZERO_BIT |
   typeof SW_FLAG_INT_DISABLE |
   typeof SW_FLAG_BCD_ENABLE |
-  typeof SW_FLAG_OVERFLOW |
-  typeof SW_FLAG_NEGATIVE
+  typeof SW_FLAG_OVERFLOW_BIT |
+  typeof SW_FLAG_NEGATIVE_BIT
 );
 
 export class Cpu {
@@ -29,6 +32,7 @@ export class Cpu {
   private set regA(value: number) {
     this._regA = value;
     this.setRegisterFlags(value);
+    console.log(this._regA.toString(16), this.regSW.toString(16));
   }
   private get regA(): number {
     return this._regA;
@@ -100,8 +104,8 @@ export class Cpu {
       [0x9A]: () => this.regSP = this.regX,
 
       // Branch instructions
-      [0x10]: () => this.branch((this.regSW & SW_FLAG_NEGATIVE) === 0),
-      [0xD0]: () => this.branch((this.regSW & SW_FLAG_ZERO) === 0),
+      [0x10]: () => this.branch((this.regSW & SW_FLAG_NEGATIVE_MASK) === 0),
+      [0xD0]: () => this.branch((this.regSW & SW_FLAG_ZERO_MASK) === 0),
     };
   }
 
@@ -165,7 +169,7 @@ export class Cpu {
 
   private setFlag(flag: ProcessorFlag, value: number) {
     const bit = (value & 0x1) << flag;
-    this.regSW &= bit;
+    this.regSW |= bit;
   }
 
   // memory routines
@@ -194,8 +198,8 @@ export class Cpu {
   }
 
   private setRegisterFlags(value) {
-    this.setFlag(SW_FLAG_NEGATIVE, (value & 0x80) ? 1 : 0);
-    this.setFlag(SW_FLAG_ZERO, !value ? 1 : 0);
+    this.setFlag(SW_FLAG_NEGATIVE_BIT, (value & 0x80) ? 1 : 0);
+    this.setFlag(SW_FLAG_ZERO_BIT, !value ? 1 : 0);
   }
 
   // instructions
