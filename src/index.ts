@@ -2,7 +2,7 @@ import { Cart } from './cart/cart';
 import { CartLoader } from './cart/loader';
 import { System } from './system/system';
 
-const STOP_CLOCK = 100;
+const STOP_CLOCK = 25;
 
 class App {
   private system: System;
@@ -31,7 +31,9 @@ class App {
       console.log(Date.now() - this.start);
     }
 
-    this.system.clock();
+    for (let i = 0; i < 100; i++) {
+      this.system.clock();
+    }
   }
 }
 
