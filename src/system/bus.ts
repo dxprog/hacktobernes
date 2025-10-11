@@ -66,13 +66,28 @@ export class Bus {
     );
   }
 
+  private selectChipForAddress(): Chip | null {
+    // the NES doesn't have the potential for bus conflicts due to how
+    // addresses are decoded in the 74ls139. we'll mimic that here by selecting
+    // the chip at the highest matching address
+    const selectedChip = this.addressChipMap.reduce<ChipSelect | null>((acc, chipSelect) => {
+      if (chipSelect.addressMask > (acc?.addressMask ?? 0) && this.isInRange(chipSelect)) {
+        acc = chipSelect;
+      }
+      return acc;
+    }, null);
+
+    return selectedChip?.chip;
+  }
+
   private readValueAtAddress() {
     let value = this.getFloatingValue();
-    this.addressChipMap.forEach(chipSelect => {
-      if (this.isInRange(chipSelect)) {
-        value = chipSelect.chip.read(this.address);
-      }
-    });
+
+    const selectedChip = this.selectChipForAddress();
+    if (selectedChip) {
+      value = selectedChip.read(this.address);
+    }
+
     this.value = value;
   }
 
