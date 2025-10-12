@@ -1,21 +1,23 @@
 import { Chip } from "../common/chip";
+import { Rom } from "../common/rom";
 
 const HEADER_IDENT = 0x4e45531a;
 const HEADER_SIZE = 16;
 const ONE_K = 1024;
 const PRG_BANK_SIZE = ONE_K * 16;
 const CHR_BANK_SIZE = ONE_K * 8;
-// for any bus address that rolls in, we only care about the lower fifteen bits
-const ADDRESS_MASK = 0x7fff;
+// for any bus address that rolls in, we only care about the lower fifteen bits...
+const PRG_ADDRESS_MASK = 0x7fff;
+const CHR_ADDRESS_MASK = 0x1fff;
 
 export enum MirroringDirection {
   Horizontal = 0,
   Vertical = 1
 };
 
-export class Cart extends Chip {
-  public prgData: Uint8Array;
-  public chrData: Uint8Array;
+export class Cart {
+  public prgRom: Rom;
+  public chrRom: Rom;
   public numPrgBanks: number;
   public numChrBanks: number;
   public mirroringType: MirroringDirection;
@@ -64,15 +66,13 @@ export class Cart extends Chip {
     this.mapperId |= flag & 0b11110000;
 
     // duplicate all of the rom data so we can properly index into it
-    this.prgData = new Uint8Array(data.subarray(HEADER_SIZE, HEADER_SIZE + prgDataSize));
-    this.chrData = new Uint8Array(data.subarray(HEADER_SIZE + prgDataSize, HEADER_SIZE + prgDataSize + chrDataSize));
-  }
-
-  read(address: number): number {
-    return this.prgData[address & ADDRESS_MASK];
-  }
-
-  write(address: number, value: number) {
-    // you can't write to ROM... until I add mapper support
+    this.prgRom = new Rom(
+      new Uint8Array(data.subarray(HEADER_SIZE, HEADER_SIZE + prgDataSize)),
+      PRG_ADDRESS_MASK
+    );
+    this.chrRom = new Rom(
+      new Uint8Array(data.subarray(HEADER_SIZE + prgDataSize, HEADER_SIZE + prgDataSize + chrDataSize)),
+      CHR_ADDRESS_MASK
+    );
   }
 }

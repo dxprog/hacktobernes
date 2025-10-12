@@ -245,6 +245,8 @@ export class Cpu {
       [0xC4]: { instruction: 'CPY', callable: () => this.compare(this.regY, this.readUint8AtAddress(this.addrZeroPage())) },
       [0xCC]: { instruction: 'CPY', callable: () => this.compare(this.regY, this.readUint8AtAddress(this.addrAbsolute())) },
     };
+
+    console.log(`Added ${Object.keys(this.opCodeMap).length} operations`);
   }
 
   reset() {
@@ -279,7 +281,7 @@ export class Cpu {
 
     const opCode = this.opCodeMap[opcode];
     if (opCode) {
-      console.log((this.regPC - 1).toString(16), opCode.instruction);
+      // console.log((this.regPC - 1).toString(16), opCode.instruction);
       opCode.callable();
     } else {
       console.log('unknown opcode: ', (this.regPC - 1).toString(16), opcode.toString(16));
