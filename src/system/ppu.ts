@@ -1,4 +1,5 @@
 import { Chip } from '../common/chip';
+import { Cpu } from './cpu';
 
 const REGISTER_ADDRESS_MASK = 0x7;
 const REGISTER_ADDRESS_PPUCTL = 0x2;
@@ -11,12 +12,14 @@ export class Ppu extends Chip {
   private horizontalCounter: number;
   private verticalCounter: number;
   private regPpuStatus: number;
+  private nmiCallback: Function;
 
-  constructor() {
+  constructor(nmiCallback: Function) {
     super();
     this.horizontalCounter = 0;
     this.verticalCounter = 0;
     this.regPpuStatus = 0;
+    this.nmiCallback = nmiCallback;
   }
 
   clock() {
@@ -28,6 +31,7 @@ export class Ppu extends Chip {
       if (this.verticalCounter >= VERTICAL_SCAN_COUNT) {
         this.regPpuStatus |= PPUCTL_FLAG_VBLANK;
         console.log('vblank', this.regPpuStatus);
+        this.nmiCallback();
         this.verticalCounter = 0;
       }
     }
