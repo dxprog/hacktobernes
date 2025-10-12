@@ -20,8 +20,8 @@ export class System {
   constructor(cart: Cart) {
     this.bus = new Bus();
     this.wram = new Wram();
-    this.ppu = new Ppu();
     this.cpu = new Cpu(this.bus);
+    this.ppu = new Ppu(this.cpu.nmi.bind(this.cpu));
     this.cart = cart;
 
     this.buildMemoryMap();
