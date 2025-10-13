@@ -91,18 +91,18 @@ export class Cpu {
       [0x18]: { instruction: 'CLC', callable: () => this.setFlag(SW_FLAG_CARRY_BIT, false)},
 
       // LDA
-      [0xA9]: { instruction: 'LDA', callable: () => this.regA = this.addrImmediate() },
-      [0xA5]: { instruction: 'LDA', callable: () => this.regA = this.readUint8AtAddress(this.addrZeroPage()) },
-      [0xAD]: { instruction: 'LDA', callable: () => this.regA = this.readUint8AtAddress(this.addrAbsolute()) },
-      [0xBD]: { instruction: 'LDA', callable: () => this.regA = this.readUint8AtAddress(this.addrAbsoluteX()) },
-      [0xB9]: { instruction: 'LDA', callable: () => this.regA = this.readUint8AtAddress(this.addrAbsoluteY()) },
-      [0xA1]: { instruction: 'LDA', callable: () => this.regA = this.readUint8AtAddress(this.addrIndirectX()) },
-      [0xB1]: { instruction: 'LDA', callable: () => this.regA = this.readUint8AtAddress(this.addrIndirectY()) },
+      [0xA9]: { instruction: 'LDA', callable: () => this.regA = this.readImmediate() },
+      [0xA5]: { instruction: 'LDA', callable: () => this.regA = this.readZeroPage() },
+      [0xAD]: { instruction: 'LDA', callable: () => this.regA = this.readAbsolute() },
+      [0xBD]: { instruction: 'LDA', callable: () => this.regA = this.readAbsoluteX() },
+      [0xB9]: { instruction: 'LDA', callable: () => this.regA = this.readAbsoluteY() },
+      [0xA1]: { instruction: 'LDA', callable: () => this.regA = this.readIndirectX() },
+      [0xB1]: { instruction: 'LDA', callable: () => this.regA = this.readIndirectY() },
 
       // LDY
-      [0xA0]: { instruction: 'LDY', callable: () => this.regY = this.addrImmediate() },
-      [0xA4]: { instruction: 'LDY', callable: () => this.regY = this.readUint8AtAddress(this.addrZeroPage()) },
-      [0xAC]: { instruction: 'LDY', callable: () => this.regY = this.readUint8AtAddress(this.addrAbsolute()) },
+      [0xA0]: { instruction: 'LDY', callable: () => this.regY = this.readImmediate() },
+      [0xA4]: { instruction: 'LDY', callable: () => this.regY = this.readZeroPage() },
+      [0xAC]: { instruction: 'LDY', callable: () => this.regY = this.readAbsolute() },
 
       // STA
       [0x85]: { instruction: 'STA', callable: () => this.store(this.regA, this.addrZeroPage()) },
@@ -117,40 +117,40 @@ export class Cpu {
       [0x8E]: { instruction: 'STX', callable: () => this.store(this.regX, this.addrAbsolute()) },
 
       // LDX
-      [0xA2]: { instruction: 'LDX', callable: () => this.regX = this.addrImmediate() },
-      [0xA6]: { instruction: 'LDX', callable: () => this.regX = this.readUint8AtAddress(this.addrZeroPage()) },
-      [0xB6]: { instruction: 'LDX', callable: () => this.regX = this.readUint8AtAddress(this.addrZeroPageY()) },
-      [0xAE]: { instruction: 'LDX', callable: () => this.regX = this.readUint8AtAddress(this.addrAbsolute()) },
-      [0xBE]: { instruction: 'LDX', callable: () => this.regX = this.readUint8AtAddress(this.addrAbsoluteY()) },
+      [0xA2]: { instruction: 'LDX', callable: () => this.regX = this.readImmediate() },
+      [0xA6]: { instruction: 'LDX', callable: () => this.regX = this.readZeroPage() },
+      [0xB6]: { instruction: 'LDX', callable: () => this.regX = this.readZeroPageY() },
+      [0xAE]: { instruction: 'LDX', callable: () => this.regX = this.readAbsolute() },
+      [0xBE]: { instruction: 'LDX', callable: () => this.regX = this.readAbsoluteY() },
 
       // AND
-      [0x29]: { instruction: 'AND', callable: () => this.and(this.addrImmediate()) },
-      [0x25]: { instruction: 'AND', callable: () => this.and(this.addrZeroPage()) },
-      [0x35]: { instruction: 'AND', callable: () => this.and(this.addrZeroPageX()) },
-      [0x2D]: { instruction: 'AND', callable: () => this.and(this.addrAbsolute()) },
-      [0x3D]: { instruction: 'AND', callable: () => this.and(this.addrAbsoluteX()) },
-      [0x39]: { instruction: 'AND', callable: () => this.and(this.addrAbsoluteY()) },
-      [0x21]: { instruction: 'AND', callable: () => this.and(this.addrIndirectX()) },
-      [0x31]: { instruction: 'AND', callable: () => this.and(this.addrIndirectY()) },
+      [0x29]: { instruction: 'AND', callable: () => this.and(this.readImmediate()) },
+      [0x25]: { instruction: 'AND', callable: () => this.and(this.readZeroPage()) },
+      [0x35]: { instruction: 'AND', callable: () => this.and(this.readZeroPageX()) },
+      [0x2D]: { instruction: 'AND', callable: () => this.and(this.readAbsolute()) },
+      [0x3D]: { instruction: 'AND', callable: () => this.and(this.readAbsoluteX()) },
+      [0x39]: { instruction: 'AND', callable: () => this.and(this.readAbsoluteY()) },
+      [0x21]: { instruction: 'AND', callable: () => this.and(this.readIndirectX()) },
+      [0x31]: { instruction: 'AND', callable: () => this.and(this.readIndirectY()) },
 
       // ORA
-      [0x09]: { instruction: 'ORA', callable: () => this.regA |= this.addrImmediate() },
-      [0x05]: { instruction: 'ORA', callable: () => this.ora(this.addrZeroPage()) },
-      [0x15]: { instruction: 'ORA', callable: () => this.ora(this.addrZeroPageX()) },
-      [0x0D]: { instruction: 'ORA', callable: () => this.ora(this.addrAbsolute()) },
-      [0x1D]: { instruction: 'ORA', callable: () => this.ora(this.addrAbsoluteX()) },
-      [0x19]: { instruction: 'ORA', callable: () => this.ora(this.addrAbsoluteY()) },
-      [0x11]: { instruction: 'ORA', callable: () => this.ora(this.addrIndirectY()) },
+      [0x09]: { instruction: 'ORA', callable: () => this.ora(this.readImmediate()) },
+      [0x05]: { instruction: 'ORA', callable: () => this.ora(this.readZeroPage()) },
+      [0x15]: { instruction: 'ORA', callable: () => this.ora(this.readZeroPageX()) },
+      [0x0D]: { instruction: 'ORA', callable: () => this.ora(this.readAbsolute()) },
+      [0x1D]: { instruction: 'ORA', callable: () => this.ora(this.readAbsoluteX()) },
+      [0x19]: { instruction: 'ORA', callable: () => this.ora(this.readAbsoluteY()) },
+      [0x11]: { instruction: 'ORA', callable: () => this.ora(this.readIndirectY()) },
 
       // EOR
-      [0x49]: { instruction: 'EOR', callable: () => this.eor(this.addrImmediate()) },
-      [0x45]: { instruction: 'EOR', callable: () => this.eor(this.addrZeroPage()) },
-      [0x55]: { instruction: 'EOR', callable: () => this.eor(this.addrZeroPageX()) },
-      [0x4D]: { instruction: 'EOR', callable: () => this.eor(this.addrAbsolute()) },
-      [0x5D]: { instruction: 'EOR', callable: () => this.eor(this.addrAbsoluteX()) },
-      [0x59]: { instruction: 'EOR', callable: () => this.eor(this.addrAbsoluteY()) },
-      [0x41]: { instruction: 'EOR', callable: () => this.eor(this.addrIndirectX()) },
-      [0x51]: { instruction: 'EOR', callable: () => this.eor(this.addrIndirectY()) },
+      [0x49]: { instruction: 'EOR', callable: () => this.eor(this.readImmediate()) },
+      [0x45]: { instruction: 'EOR', callable: () => this.eor(this.readZeroPage()) },
+      [0x55]: { instruction: 'EOR', callable: () => this.eor(this.readZeroPageX()) },
+      [0x4D]: { instruction: 'EOR', callable: () => this.eor(this.readAbsolute()) },
+      [0x5D]: { instruction: 'EOR', callable: () => this.eor(this.readAbsoluteX()) },
+      [0x59]: { instruction: 'EOR', callable: () => this.eor(this.readAbsoluteY()) },
+      [0x41]: { instruction: 'EOR', callable: () => this.eor(this.readIndirectX()) },
+      [0x51]: { instruction: 'EOR', callable: () => this.eor(this.readIndirectY()) },
 
       // Register operations
       [0x9A]: { instruction: 'TXS', callable: () => this.regSP = this.regX },
@@ -191,23 +191,23 @@ export class Cpu {
       [0x6E]: { instruction: 'ROR', callable: () => this.ramOp(this.addrAbsolute(), this.ror) },
       [0x7E]: { instruction: 'ROR', callable: () => this.ramOp(this.addrAbsoluteX(), this.ror) },
       // ADC
-      [0x69]: { instruction: 'ADC', callable: () => this.adc(this.addrImmediate()) },
-      [0x65]: { instruction: 'ADC', callable: () => this.adc(this.addrZeroPage()) },
-      [0x75]: { instruction: 'ADC', callable: () => this.adc(this.addrZeroPageX()) },
-      [0x6D]: { instruction: 'ADC', callable: () => this.adc(this.addrAbsolute()) },
-      [0x7D]: { instruction: 'ADC', callable: () => this.adc(this.addrAbsoluteX()) },
-      [0x79]: { instruction: 'ADC', callable: () => this.adc(this.addrAbsoluteY()) },
-      [0x61]: { instruction: 'ADC', callable: () => this.adc(this.addrIndirectX()) },
-      [0x71]: { instruction: 'ADC', callable: () => this.adc(this.addrIndirectY()) },
+      [0x69]: { instruction: 'ADC', callable: () => this.adc(this.readImmediate()) },
+      [0x65]: { instruction: 'ADC', callable: () => this.adc(this.readZeroPage()) },
+      [0x75]: { instruction: 'ADC', callable: () => this.adc(this.readZeroPageX()) },
+      [0x6D]: { instruction: 'ADC', callable: () => this.adc(this.readAbsolute()) },
+      [0x7D]: { instruction: 'ADC', callable: () => this.adc(this.readAbsoluteX()) },
+      [0x79]: { instruction: 'ADC', callable: () => this.adc(this.readAbsoluteY()) },
+      [0x61]: { instruction: 'ADC', callable: () => this.adc(this.readIndirectX()) },
+      [0x71]: { instruction: 'ADC', callable: () => this.adc(this.readIndirectY()) },
       // SBC
-      [0xE9]: { instruction: 'SBC', callable: () => this.sbc(this.addrImmediate()) },
-      [0xE5]: { instruction: 'SBC', callable: () => this.sbc(this.addrZeroPage()) },
-      [0xF5]: { instruction: 'SBC', callable: () => this.sbc(this.addrZeroPageX()) },
-      [0xED]: { instruction: 'SBC', callable: () => this.sbc(this.addrAbsolute()) },
-      [0xFD]: { instruction: 'SBC', callable: () => this.sbc(this.addrAbsoluteX()) },
-      [0xF9]: { instruction: 'SBC', callable: () => this.sbc(this.addrAbsoluteY()) },
-      [0xE1]: { instruction: 'SBC', callable: () => this.sbc(this.addrIndirectX()) },
-      [0xF1]: { instruction: 'SBC', callable: () => this.sbc(this.addrIndirectY()) },
+      [0xE9]: { instruction: 'SBC', callable: () => this.sbc(this.readImmediate()) },
+      [0xE5]: { instruction: 'SBC', callable: () => this.sbc(this.readZeroPage()) },
+      [0xF5]: { instruction: 'SBC', callable: () => this.sbc(this.readZeroPageX()) },
+      [0xED]: { instruction: 'SBC', callable: () => this.sbc(this.readAbsolute()) },
+      [0xFD]: { instruction: 'SBC', callable: () => this.sbc(this.readAbsoluteX()) },
+      [0xF9]: { instruction: 'SBC', callable: () => this.sbc(this.readAbsoluteY()) },
+      [0xE1]: { instruction: 'SBC', callable: () => this.sbc(this.readIndirectX()) },
+      [0xF1]: { instruction: 'SBC', callable: () => this.sbc(this.readIndirectY()) },
 
       // Branch instructions
       [0x10]: { instruction: 'BPL', callable: () => this.branch((this.regSW & SW_FLAG_NEGATIVE_MASK) === 0) },
@@ -230,19 +230,19 @@ export class Cpu {
 
       // Compare instructions
       // CMP
-      [0xC9]: { instruction: 'CMP', callable: () => this.compare(this.regA, this.addrImmediate()) },
+      [0xC9]: { instruction: 'CMP', callable: () => this.compare(this.regA, this.readImmediate()) },
       [0xC5]: { instruction: 'CMP', callable: () => this.compare(this.regA, this.readUint8AtAddress(this.addrZeroPage())) },
       [0xCD]: { instruction: 'CMP', callable: () => this.compare(this.regA, this.readUint8AtAddress(this.addrAbsolute())) },
       [0xDD]: { instruction: 'CMP', callable: () => this.compare(this.regA, this.readUint8AtAddress(this.addrAbsoluteX())) },
       [0xD9]: { instruction: 'CMP', callable: () => this.compare(this.regA, this.readUint8AtAddress(this.addrAbsoluteY())) },
 
       // CPX
-      [0xE0]: { instruction: 'CPX', callable: () => this.compare(this.regX, this.addrImmediate()) },
+      [0xE0]: { instruction: 'CPX', callable: () => this.compare(this.regX, this.readImmediate()) },
       [0xE4]: { instruction: 'CPX', callable: () => this.compare(this.regX, this.readUint8AtAddress(this.addrZeroPage())) },
       [0xEC]: { instruction: 'CPX', callable: () => this.compare(this.regX, this.readUint8AtAddress(this.addrAbsolute())) },
 
       // CPY
-      [0xC0]: { instruction: 'CPY', callable: () => this.compare(this.regY, this.addrImmediate()) },
+      [0xC0]: { instruction: 'CPY', callable: () => this.compare(this.regY, this.readImmediate()) },
       [0xC4]: { instruction: 'CPY', callable: () => this.compare(this.regY, this.readUint8AtAddress(this.addrZeroPage())) },
       [0xCC]: { instruction: 'CPY', callable: () => this.compare(this.regY, this.readUint8AtAddress(this.addrAbsolute())) },
     };
@@ -347,7 +347,7 @@ export class Cpu {
    *      ADDRESSING MODES      *
    *****************************/
 
-  private addrImmediate() {
+  private readImmediate() {
     const value = this.readUint8();
     this._addrDbg = `#%${value.toString(2)}`;
     return value;
@@ -358,12 +358,18 @@ export class Cpu {
     this._addrDbg = `$${value.toString(16)}`;
     return value;
   }
+  private readZeroPage() {
+    return this.readUint8AtAddress(this.addrZeroPage());
+  }
 
   private addrZeroPageX() {
     this.instructionCounter++;
     const value = this.readUint8();
     this._addrDbg = `$${value.toString(16)}, X`;
     return (value + this.regX) & MAX_BYTE;
+  }
+  private readZeroPageX() {
+    return this.readUint8AtAddress(this.addrZeroPageX());
   }
 
   private addrZeroPageY() {
@@ -372,11 +378,17 @@ export class Cpu {
     this._addrDbg = `$${value.toString(16)}, Y`;
     return (value + this.regY) & MAX_BYTE;
   }
+  private readZeroPageY() {
+    return this.readUint8AtAddress(this.addrZeroPageY());
+  }
 
   private addrAbsolute() {
     const value = this.readUint16();
     this._addrDbg = `$${value.toString(16)}`;
     return value;
+  }
+  private readAbsolute() {
+    return this.readUint8AtAddress(this.addrAbsolute());
   }
 
   private addrAbsoluteX() {
@@ -384,11 +396,17 @@ export class Cpu {
     this._addrDbg = `$${absoluteAddr.toString(16)}, X`;
     return (absoluteAddr + this.regX) & MAX_ADDRESS;
   }
+  private readAbsoluteX() {
+    return this.readUint8AtAddress(this.addrAbsoluteX());
+  }
 
   private addrAbsoluteY() {
     const absoluteAddr = this.addrAbsolute();
     this._addrDbg = `$${absoluteAddr.toString(16)}, Y`;
     return (absoluteAddr + this.regY) & MAX_ADDRESS;
+  }
+  private readAbsoluteY() {
+    return this.readUint8AtAddress(this.addrAbsoluteY());
   }
 
   private addrIndirectX() {
@@ -397,12 +415,18 @@ export class Cpu {
     const targetAddr = (value + this.regX) & MAX_BYTE;
     return this.readUint16AtAddress(targetAddr);
   }
+  private readIndirectX() {
+    return this.readUint8AtAddress(this.addrIndirectX());
+  }
 
   private addrIndirectY() {
     const zeroPageAddr = this.readUint8();
     this._addrDbg = `($${zeroPageAddr.toString(16)}), Y`;
     const address = this.readUint16AtAddress(zeroPageAddr);
     return (address + this.regY) & MAX_ADDRESS;
+  }
+  private readIndirectY() {
+    return this.readUint8AtAddress(this.addrIndirectY());
   }
 
   private setRegisterFlags(value) {
@@ -417,13 +441,12 @@ export class Cpu {
     this.bus.writeAddr(address, register);
   }
 
-  private and(addr: number) {
-    const value = this.readUint8AtAddress(addr);
+  private and(value: number) {
+    this.instructionCounter++;
     this.regA = this.regA & value;
   }
 
-  private ora(addr: number) {
-    const value = this.readUint8AtAddress(addr);
+  private ora(value: number) {
     this.instructionCounter++;
     this.regA = this.regA | value;
   }
@@ -466,8 +489,7 @@ export class Cpu {
     this.write(addr, operation(value));
   }
 
-  private eor(addr: number) {
-    const value = this.readUint8AtAddress(addr);
+  private eor(value: number) {
     this.regA = (this.regA ^ value) & MAX_BYTE;
   }
 
@@ -477,13 +499,11 @@ export class Cpu {
     this.regA = result & MAX_BYTE;
   }
 
-  private adc(addr: number) {
-    const value = this.readUint8AtAddress(addr);
+  private adc(value: number) {
     this.addWithCarry(value, this.getFlag(SW_FLAG_CARRY_BIT));
   }
 
-  private sbc(addr: number) {
-    const value = this.readUint8AtAddress(addr);
+  private sbc(value: number) {
     this.addWithCarry(
       this.twosComplement(value),
       ~(this.getFlag(SW_FLAG_CARRY_BIT)) & 1
