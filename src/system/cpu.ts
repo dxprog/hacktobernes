@@ -4,6 +4,7 @@ import { Bus } from './bus';
 const NMI_VECTOR_ADDR = 0xfffa;
 const RESET_VECTOR_ADDR = 0xfffc;
 const IRQ_VECTOR_ADDR = 0xfffe;
+const STACK_STARTING_ADDR = 0x100;
 
 // status flag masks
 const SW_DEFAULT = 0x20;
@@ -34,6 +35,7 @@ type OpCodeDescriptor = {
 export class Cpu {
   private bus: Bus;
   private _addrDbg: string;
+  private halted: boolean;
   // accumulator
   private _regA: number;
   private set regA(value: number) {
@@ -81,6 +83,7 @@ export class Cpu {
     this.buildOpCodeMap();
     this.ror = this.ror.bind(this);
     this.rol = this.rol.bind(this);
+    this.halted = false;
   }
 
   buildOpCodeMap() {
@@ -271,6 +274,10 @@ export class Cpu {
   }
 
   clock() {
+    if (this.halted) {
+      return;
+    }
+
     // don't do anything until the current instructio is "being completed"
     if (this.instructionCounter > 0) {
       this.instructionCounter--;
@@ -287,6 +294,7 @@ export class Cpu {
       // console.log(`$${(this.regPC - 1).toString(16)}: ${opCode.instruction} ${this._addrDbg}`);
     } else {
       console.log('unknown opcode: ', (this.regPC - 1).toString(16), opcode.toString(16));
+      this.halted = true;
     }
   }
 
@@ -314,8 +322,8 @@ export class Cpu {
   }
 
   private setFlag(flag: ProcessorFlag, set: boolean) {
-    const bit = set ? 1 : 0;
-    this.regSW |= bit << flag;
+    const mask = 1 << flag;
+    this.regSW = set ? (this.regSW | mask) : (this.regSW & ~mask) & MAX_BYTE;
   }
 
   private getFlag(flag: ProcessorFlag): number {
@@ -349,7 +357,7 @@ export class Cpu {
 
   private readImmediate() {
     const value = this.readUint8();
-    this._addrDbg = `#%${value.toString(2)}`;
+    this._addrDbg = `#${value.toString(16)}`;
     return value;
   }
 
@@ -430,7 +438,7 @@ export class Cpu {
   }
 
   private setRegisterFlags(value) {
-    this.setFlag(SW_FLAG_NEGATIVE_BIT, !!(value & 0x80));
+    this.setFlag(SW_FLAG_NEGATIVE_BIT, !!(value & 0b10000000));
     this.setFlag(SW_FLAG_ZERO_BIT, !value);
   }
 
@@ -511,7 +519,8 @@ export class Cpu {
   }
 
   private branch(shouldBranch: boolean) {
-    const offset = this.readUint8();
+    // this is a hack to get the correct debugger output
+    const offset = this.addrZeroPage();
     if (shouldBranch) {
       this.instructionCounter++;
       this.regPC = this.regPC + this.toInt8(offset);
@@ -529,8 +538,7 @@ export class Cpu {
 
   private pushValue(value: number) {
     this.instructionCounter++;
-    this.write(this.regSP, value);
-    this.regSP--;
+    this.write(STACK_STARTING_ADDR + this.regSP--, value);
     if (this.regSP < 0) {
       this.regSP = MAX_BYTE;
     }
@@ -544,8 +552,7 @@ export class Cpu {
   private popValue(): number {
     this.instructionCounter++;
     this.regSP = (this.regSP + 1) & MAX_BYTE;
-    const value = this.readUint8AtAddress(this.regSP) & MAX_BYTE;
-    return value;
+    return this.readUint8AtAddress(STACK_STARTING_ADDR + this.regSP) & MAX_BYTE;
   }
 
   private popAddr(): number {
