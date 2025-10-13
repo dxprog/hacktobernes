@@ -65,12 +65,13 @@ export class Ppu extends Chip {
   }
 
   getValueForTile(tileId: number, x: number, y: number): number {
-    //   11 10 01 00  5  6  7  8
-    //   AA BB CC DD EE FF GG HH
-    const index = (tileId * 16) + (y * 2) + (x >> 2 & 1);
-    this.ppuBus.setAddr(index);
-    const value = this.ppuBus.getBusValue();
-    return (value >> (x & 3)) & 0x3;
+    const tileAddr = (tileId * 16) + y;
+    this.ppuBus.setAddr(tileAddr);
+    const bitPlane0 = this.ppuBus.getBusValue();
+    this.ppuBus.setAddr(tileAddr + 8);
+    const bitPlane1 = this.ppuBus.getBusValue();
+    const xShift = 7 - x;
+    return ((bitPlane0 >> xShift) & 1) | (((bitPlane1 >> xShift) & 1) << 1);
   }
 
   clock() {
