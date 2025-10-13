@@ -33,6 +33,7 @@ type OpCodeDescriptor = {
 
 export class Cpu {
   private bus: Bus;
+  private _addrDbg: string;
   // accumulator
   private _regA: number;
   private set regA(value: number) {
@@ -133,7 +134,7 @@ export class Cpu {
       [0x31]: { instruction: 'AND', callable: () => this.and(this.addrIndirectY()) },
 
       // ORA
-      [0x09]: { instruction: 'ORA', callable: () => this.ora(this.addrImmediate()) },
+      [0x09]: { instruction: 'ORA', callable: () => this.regA |= this.addrImmediate() },
       [0x05]: { instruction: 'ORA', callable: () => this.ora(this.addrZeroPage()) },
       [0x15]: { instruction: 'ORA', callable: () => this.ora(this.addrZeroPageX()) },
       [0x0D]: { instruction: 'ORA', callable: () => this.ora(this.addrAbsolute()) },
@@ -277,12 +278,13 @@ export class Cpu {
     }
 
     // fetch the next opcode
+    this._addrDbg = '';
     const opcode = this.readUint8();
 
     const opCode = this.opCodeMap[opcode];
     if (opCode) {
-      // console.log((this.regPC - 1).toString(16), opCode.instruction);
       opCode.callable();
+      // console.log(`$${(this.regPC - 1).toString(16)}: ${opCode.instruction} ${this._addrDbg}`);
     } else {
       console.log('unknown opcode: ', (this.regPC - 1).toString(16), opcode.toString(16));
     }
@@ -297,10 +299,7 @@ export class Cpu {
 
   private readUint8(): number {
     this.instructionCounter++;
-    this.bus.setBusDirection('read');
-    this.bus.setAddr((this.regPC++) & MAX_ADDRESS);
-    const value = this.bus.getBusValue();
-    return value;
+    return this.bus.readAddr((this.regPC++) & MAX_ADDRESS);;
   }
 
   private readUint16() {
@@ -327,9 +326,7 @@ export class Cpu {
   // memory routines
   private readUint8AtAddress(address: number): number {
     this.instructionCounter++;
-    this.bus.setBusDirection('read');
-    this.bus.setAddr(address);
-    return this.bus.getBusValue();
+    return this.bus.readAddr(address);
   }
 
   private readUint16AtAddress(address: number): number {
@@ -339,9 +336,7 @@ export class Cpu {
   }
 
   private write(address: number, value: number) {
-    this.bus.setBusDirection('write');
-    this.bus.setAddr(address);
-    this.bus.setBusValue(value);
+    this.bus.writeAddr(address, value);
   }
 
   private twosComplement(value: number): number {
@@ -353,44 +348,59 @@ export class Cpu {
    *****************************/
 
   private addrImmediate() {
-    return this.readUint8();
+    const value = this.readUint8();
+    this._addrDbg = `#%${value.toString(2)}`;
+    return value;
   }
 
   private addrZeroPage() {
-    return this.readUint8();
+    const value = this.readUint8();
+    this._addrDbg = `$${value.toString(16)}`;
+    return value;
   }
 
   private addrZeroPageX() {
     this.instructionCounter++;
-    return (this.readUint8() + this.regX) & MAX_BYTE;
+    const value = this.readUint8();
+    this._addrDbg = `$${value.toString(16)}, X`;
+    return (value + this.regX) & MAX_BYTE;
   }
 
   private addrZeroPageY() {
     this.instructionCounter++;
-    return (this.readUint8() + this.regY) & MAX_BYTE;
+    const value = this.readUint8();
+    this._addrDbg = `$${value.toString(16)}, Y`;
+    return (value + this.regY) & MAX_BYTE;
   }
 
   private addrAbsolute() {
-    return this.readUint16();
+    const value = this.readUint16();
+    this._addrDbg = `$${value.toString(16)}`;
+    return value;
   }
 
   private addrAbsoluteX() {
     const absoluteAddr = this.addrAbsolute();
+    this._addrDbg = `$${absoluteAddr.toString(16)}, X`;
     return (absoluteAddr + this.regX) & MAX_ADDRESS;
   }
 
   private addrAbsoluteY() {
     const absoluteAddr = this.addrAbsolute();
+    this._addrDbg = `$${absoluteAddr.toString(16)}, Y`;
     return (absoluteAddr + this.regY) & MAX_ADDRESS;
   }
 
   private addrIndirectX() {
-    const targetAddr = (this.readUint8() + this.regX) & MAX_BYTE;
+    const value = this.readUint8();
+    this._addrDbg = `($${value.toString(16)}, X)`;
+    const targetAddr = (value + this.regX) & MAX_BYTE;
     return this.readUint16AtAddress(targetAddr);
   }
 
   private addrIndirectY() {
     const zeroPageAddr = this.readUint8();
+    this._addrDbg = `($${zeroPageAddr.toString(16)}), Y`;
     const address = this.readUint16AtAddress(zeroPageAddr);
     return (address + this.regY) & MAX_ADDRESS;
   }
@@ -404,9 +414,7 @@ export class Cpu {
 
   private store(register: number, address: number) {
     this.instructionCounter++;
-    this.bus.setAddr(address);
-    this.bus.setBusDirection('write');
-    this.bus.setBusValue(this.regA);
+    this.bus.writeAddr(address, register);
   }
 
   private and(addr: number) {
@@ -516,7 +524,7 @@ export class Cpu {
   private popValue(): number {
     this.instructionCounter++;
     this.regSP = (this.regSP + 1) & MAX_BYTE;
-    const value = this.readUint8AtAddress(this.regSP);
+    const value = this.readUint8AtAddress(this.regSP) & MAX_BYTE;
     return value;
   }
 
@@ -533,7 +541,7 @@ export class Cpu {
   }
 
   private rts() {
-    this.instructionCounter +- 3;
+    this.instructionCounter += 3;
     const address = this.popAddr();
     this.regPC = (address + 1) & MAX_ADDRESS;
   }
