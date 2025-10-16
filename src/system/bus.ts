@@ -59,6 +59,24 @@ export class Bus {
     }
   }
 
+  writeAddr(address: number, value: number) {
+    this.address = address;
+    this.direction = 'write';
+    this.value = value;
+    this.writeValueToAddress();
+  }
+
+  readAddr(address: number): number {
+    this.address = address;
+    this.direction = 'read';
+    this.readValueAtAddress();
+    return this.value;
+  }
+
+  getAddr(): number {
+    return this.address;
+  }
+
   private isInRange(chipSelect: ChipSelect) {
     return (
       (this.address & chipSelect.addressMask) > 0 ||

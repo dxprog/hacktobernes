@@ -2,13 +2,13 @@ import { Cart } from './cart/cart';
 import { CartLoader } from './cart/loader';
 import { System } from './system/system';
 
-const STOP_CLOCK = 400;
+const FRAME_LIMITER = 25;
 
 class App {
   private system: System;
   private cartLoader: CartLoader;
   private clockInterval: number;
-  private clocks: number = 0;
+  private frames: number = 0;
   private start: number;
 
   constructor() {
@@ -19,20 +19,17 @@ class App {
 
   handleCartLoaded(cart: Cart) {
     console.log('cart loaded');
-    this.system = new System(cart);
+    this.system = new System(cart, document.documentElement);
     this.clockInterval = setInterval(this.clock.bind(this), 0);
     this.start = Date.now();
   }
 
   clock() {
-    this.clocks++;
-    if (this.clocks >= STOP_CLOCK) {
+    this.frames++;
+    this.system.renderFrame();
+    if (this.frames >= FRAME_LIMITER) {
       clearInterval(this.clockInterval);
       console.log(Date.now() - this.start);
-    }
-
-    for (let i = 0; i < 100; i++) {
-      this.system.clock();
     }
   }
 }
