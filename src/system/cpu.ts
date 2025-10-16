@@ -1,10 +1,17 @@
 import { MAX_ADDRESS, MAX_BYTE } from '../common/constants';
 import { Bus } from './bus';
+import { DmaController } from './DmaController';
 
 const NMI_VECTOR_ADDR = 0xfffa;
 const RESET_VECTOR_ADDR = 0xfffc;
 const IRQ_VECTOR_ADDR = 0xfffe;
 const STACK_STARTING_ADDR = 0x100;
+
+// Internal functionaliy memory locations
+const CPU_INTERNAL_ADDRESS_MASK = 0x4000;
+const CPU_INTERNAL_OAMDMA_REGISTER = 0x4014;
+const OAMDMA_DATA_LOCATION = 0x2004;
+const OAMDMA_DATA_LENGTH = 0x100;
 
 // status flag masks
 const SW_DEFAULT = 0x20;
@@ -34,6 +41,7 @@ type OpCodeDescriptor = {
 
 export class Cpu {
   private bus: Bus;
+  private oamDmaController: DmaController;
   private _addrDbg: string;
   private halted: boolean;
   // accumulator
@@ -75,14 +83,22 @@ export class Cpu {
   private regSP: number;
 
   private opCodeMap: Record<number, OpCodeDescriptor>;
+  private internalRegisterMethods: Record<number, Function>;
 
   private instructionCounter: number = 0;
 
   constructor(bus: Bus) {
     this.bus = bus;
+    this.oamDmaController = new DmaController(bus);
+
     this.buildOpCodeMap();
+    this.buildRegisterMethodMap();
+
     this.ror = this.ror.bind(this);
     this.rol = this.rol.bind(this);
+    this.lsr = this.lsr.bind(this);
+    this.asl = this.asl.bind(this);
+
     this.halted = false;
   }
 
@@ -105,19 +121,26 @@ export class Cpu {
       // LDY
       [0xA0]: { instruction: 'LDY', callable: () => this.regY = this.readImmediate() },
       [0xA4]: { instruction: 'LDY', callable: () => this.regY = this.readZeroPage() },
+      [0xB4]: { instruction: 'LDY', callable: () => this.regY = this.readZeroPageX() },
       [0xAC]: { instruction: 'LDY', callable: () => this.regY = this.readAbsolute() },
+      [0xBC]: { instruction: 'LDY', callable: () => this.regY = this.readAbsoluteX() },
 
       // STA
-      [0x85]: { instruction: 'STA', callable: () => this.store(this.regA, this.addrZeroPage()) },
-      [0x95]: { instruction: 'STA', callable: () => this.store(this.regA, this.addrZeroPageX()) },
-      [0x8D]: { instruction: 'STA', callable: () => this.store(this.regA, this.addrAbsolute()) },
-      [0x9D]: { instruction: 'STA', callable: () => this.store(this.regA, this.addrAbsoluteX()) },
-      [0x99]: { instruction: 'STA', callable: () => this.store(this.regA, this.addrAbsoluteY()) },
-      [0x91]: { instruction: 'STA', callable: () => this.store(this.regA, this.addrIndirectY()) },
+      [0x85]: { instruction: 'STA', callable: () => this.write(this.addrZeroPage(), this.regA) },
+      [0x95]: { instruction: 'STA', callable: () => this.write(this.addrZeroPageX(), this.regA) },
+      [0x8D]: { instruction: 'STA', callable: () => this.write(this.addrAbsolute(), this.regA) },
+      [0x9D]: { instruction: 'STA', callable: () => this.write(this.addrAbsoluteX(), this.regA) },
+      [0x99]: { instruction: 'STA', callable: () => this.write(this.addrAbsoluteY(), this.regA) },
+      [0x91]: { instruction: 'STA', callable: () => this.write(this.addrIndirectY(), this.regA) },
 
       // STX
-      [0x86]: { instruction: 'STX', callable: () => this.store(this.regX, this.addrZeroPage()) },
-      [0x8E]: { instruction: 'STX', callable: () => this.store(this.regX, this.addrAbsolute()) },
+      [0x86]: { instruction: 'STX', callable: () => this.write(this.addrZeroPage(), this.regX) },
+      [0x96]: { instruction: 'STX', callable: () => this.write(this.addrZeroPageY(), this.regX) },
+      [0x8E]: { instruction: 'STX', callable: () => this.write(this.addrAbsolute(), this.regX) },
+      // STY
+      [0x84]: { instruction: 'STY', callable: () => this.write(this.addrZeroPage(), this.regY) },
+      [0x94]: { instruction: 'STY', callable: () => this.write(this.addrZeroPageX(), this.regY) },
+      [0x8C]: { instruction: 'STY', callable: () => this.write(this.addrAbsolute(), this.regY) },
 
       // LDX
       [0xA2]: { instruction: 'LDX', callable: () => this.regX = this.readImmediate() },
@@ -158,7 +181,9 @@ export class Cpu {
       // Register operations
       [0x9A]: { instruction: 'TXS', callable: () => this.regSP = this.regX },
       [0x8A]: { instruction: 'TXA', callable: () => this.regA = this.regX },
+      [0x98]: { instruction: 'TYA', callable: () => this.regA = this.regY },
       [0xAA]: { instruction: 'TAX', callable: () => this.regX = this.regA },
+      [0xA8]: { instruction: 'TAX', callable: () => this.regY = this.regA },
       [0x48]: { instruction: 'PHA', callable: () => this.pushValue(this.regA) },
       [0x68]: { instruction: 'PLA', callable: () => this.regA = this.popValue() },
 
@@ -179,8 +204,23 @@ export class Cpu {
       [0xF6]: { instruction: 'INC', callable: () => this.inc(this.addrZeroPageX()) },
       [0xEE]: { instruction: 'INC', callable: () => this.inc(this.addrAbsolute()) },
       [0xFE]: { instruction: 'INC', callable: () => this.inc(this.addrAbsoluteX()) },
+      // DEC
+      [0xC6]: { instruction: 'DEC', callable: () => this.dec(this.addrZeroPage()) },
+      [0xD6]: { instruction: 'DEC', callable: () => this.dec(this.addrZeroPageX()) },
+      [0xCE]: { instruction: 'DEC', callable: () => this.dec(this.addrAbsolute()) },
+      [0xDE]: { instruction: 'DEC', callable: () => this.dec(this.addrAbsoluteX()) },
       // LSR
       [0x4A]: { instruction: 'LSR', callable: () => this.regA = this.lsr(this.regA) },
+      [0x46]: { instruction: 'LSR', callable: () => this.ramOp(this.addrZeroPage(), this.lsr) },
+      [0x56]: { instruction: 'LSR', callable: () => this.ramOp(this.addrZeroPageX(), this.lsr) },
+      [0x4E]: { instruction: 'LSR', callable: () => this.ramOp(this.addrAbsolute(), this.lsr) },
+      [0x5E]: { instruction: 'LSR', callable: () => this.ramOp(this.addrAbsoluteX(), this.lsr) },
+      // ASL
+      [0x0A]: { instruction: 'ASL', callable: () => this.regA = this.asl(this.regA) },
+      [0x06]: { instruction: 'ASL', callable: () => this.ramOp(this.addrZeroPage(), this.asl) },
+      [0x16]: { instruction: 'ASL', callable: () => this.ramOp(this.addrZeroPageX(), this.asl) },
+      [0x0E]: { instruction: 'ASL', callable: () => this.ramOp(this.addrAbsolute(), this.asl) },
+      [0x1E]: { instruction: 'ASL', callable: () => this.ramOp(this.addrAbsoluteX(), this.asl) },
       // ROL
       [0x2A]: { instruction: 'ROL', callable: () => this.regA = this.rol(this.regA) },
       [0x26]: { instruction: 'ROL', callable: () => this.ramOp(this.addrZeroPage(), this.rol) },
@@ -214,6 +254,7 @@ export class Cpu {
 
       // Branch instructions
       [0x10]: { instruction: 'BPL', callable: () => this.branch(!(this.regSW & SW_FLAG_NEGATIVE_MASK)) },
+      [0x30]: { instruction: 'BMI', callable: () => this.branch(!!(this.regSW & SW_FLAG_NEGATIVE_MASK)) },
       [0xD0]: { instruction: 'BNE', callable: () => this.branch(!(this.regSW & SW_FLAG_ZERO_MASK)) },
       [0xB0]: { instruction: 'BCS', callable: () => this.branch(!!(this.regSW & SW_FLAG_CARRY_MASK)) },
       [0xF0]: { instruction: 'BEQ', callable: () => this.branch(!!(this.regSW & SW_FLAG_ZERO_MASK)) },
@@ -253,6 +294,12 @@ export class Cpu {
     console.log(`Added ${Object.keys(this.opCodeMap).length} operations`);
   }
 
+  buildRegisterMethodMap() {
+    this.internalRegisterMethods = {
+      [CPU_INTERNAL_OAMDMA_REGISTER]: value => this.startOamDmaTransfer(value),
+    };
+  }
+
   reset() {
     const vector = this.readUint16AtAddress(RESET_VECTOR_ADDR);
     console.log('reset vector:', vector.toString(16));
@@ -273,8 +320,17 @@ export class Cpu {
     this.regPC = vector;
   }
 
-  clock() {
+  startOamDmaTransfer(startByteUpper: number) {
+    this.oamDmaController.beginDmaTransfer(startByteUpper << 8, OAMDMA_DATA_LOCATION, OAMDMA_DATA_LENGTH);
+  }
+
+  clock(withDebug: boolean = false) {
     if (this.halted) {
+      return;
+    }
+
+    // if there's an active DMA transfer in progress, the CPU is halted
+    if (this.oamDmaController.clock()) {
       return;
     }
 
@@ -291,7 +347,9 @@ export class Cpu {
     const opCode = this.opCodeMap[opcode];
     if (opCode) {
       opCode.callable();
-      // console.log(`$${(this.regPC - 1).toString(16)}: ${opCode.instruction} ${this._addrDbg}`);
+      if (withDebug) {
+        console.log(`$${(this.regPC - 1).toString(16)}: ${opCode.instruction} ${this._addrDbg}`);
+      }
     } else {
       console.log('unknown opcode: ', (this.regPC - 1).toString(16), opcode.toString(16));
       this.halted = true;
@@ -345,6 +403,15 @@ export class Cpu {
 
   private write(address: number, value: number) {
     this.bus.writeAddr(address, value);
+
+    // handle CPU special writes
+    if (address & CPU_INTERNAL_ADDRESS_MASK) {
+      if (this.internalRegisterMethods[address]) {
+        this.internalRegisterMethods[address](value);
+      } else {
+        console.log('Unimplemented internal register function: ', address.toString(16));
+      }
+    }
   }
 
   private twosComplement(value: number): number {
@@ -444,11 +511,6 @@ export class Cpu {
 
   // instructions
 
-  private store(register: number, address: number) {
-    this.instructionCounter++;
-    this.bus.writeAddr(address, register);
-  }
-
   private and(value: number) {
     this.instructionCounter++;
     this.regA = this.regA & value;
@@ -471,9 +533,19 @@ export class Cpu {
     this.write(addr, this.mathWithStatus(value, 1));
   }
 
+  private dec(addr: number) {
+    let value = this.readUint8AtAddress(addr);
+    this.write(addr, this.mathWithStatus(value, -1));
+  }
+
   private lsr(originalValue: number, shiftPlaces: number = 1) {
     this.setFlag(SW_FLAG_CARRY_BIT, !!(originalValue & 1));
     return originalValue >> shiftPlaces;
+  }
+
+  private asl(originalValue: number, shiftPlaces: number = 1) {
+    this.setFlag(SW_FLAG_CARRY_BIT, !!(originalValue & 0x80));
+    return originalValue << shiftPlaces;
   }
 
   private rol(originalValue: number): number {
