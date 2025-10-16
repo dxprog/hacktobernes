@@ -213,11 +213,11 @@ export class Cpu {
       [0xF1]: { instruction: 'SBC', callable: () => this.sbc(this.readIndirectY()) },
 
       // Branch instructions
-      [0x10]: { instruction: 'BPL', callable: () => this.branch((this.regSW & SW_FLAG_NEGATIVE_MASK) === 0) },
-      [0xD0]: { instruction: 'BNE', callable: () => this.branch((this.regSW & SW_FLAG_ZERO_MASK) === 0) },
+      [0x10]: { instruction: 'BPL', callable: () => this.branch(!(this.regSW & SW_FLAG_NEGATIVE_MASK)) },
+      [0xD0]: { instruction: 'BNE', callable: () => this.branch(!(this.regSW & SW_FLAG_ZERO_MASK)) },
       [0xB0]: { instruction: 'BCS', callable: () => this.branch(!!(this.regSW & SW_FLAG_CARRY_MASK)) },
       [0xF0]: { instruction: 'BEQ', callable: () => this.branch(!!(this.regSW & SW_FLAG_ZERO_MASK)) },
-      [0x90]: { instruction: 'BCC', callable: () => this.branch(!!(this.regSW & SW_FLAG_CARRY_MASK)) },
+      [0x90]: { instruction: 'BCC', callable: () => this.branch(!(this.regSW & SW_FLAG_CARRY_MASK)) },
 
       // JMP
       [0x4C]: { instruction: 'JMP', callable: () => this.regPC = this.addrAbsolute() },
@@ -528,11 +528,12 @@ export class Cpu {
   }
 
   private compare(register: number, value: number) {
-    const diff = this.toInt8(register - value);
+    const result = register - value;
+    const diff = this.toInt8(result);
     this.setRegisterFlags(diff);
     this.setFlag(
       SW_FLAG_CARRY_BIT,
-      !!(this.regSP & SW_FLAG_NEGATIVE_MASK || this.regSP & SW_FLAG_ZERO_MASK)
+      result >= 0
     );
   }
 
@@ -552,7 +553,8 @@ export class Cpu {
   private popValue(): number {
     this.instructionCounter++;
     this.regSP = (this.regSP + 1) & MAX_BYTE;
-    return this.readUint8AtAddress(STACK_STARTING_ADDR + this.regSP) & MAX_BYTE;
+    const retVal = this.readUint8AtAddress(STACK_STARTING_ADDR + this.regSP) & MAX_BYTE;
+    return retVal;
   }
 
   private popAddr(): number {
