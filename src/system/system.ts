@@ -65,8 +65,8 @@ export class System {
     this.ppuBus.attachChip(VRAM_VIDEO_ADDRESS_MASK, this.vram);
   }
 
-  public clock() {
-    this.cpu.clock();
+  public clock(withDebug: boolean = false) {
+    this.cpu.clock(withDebug);
     // it's always gonna be three ppu clocks to one cpu clock.
     // it's ugly, but not gonna loop for perf
     this.ppu.clock();
@@ -75,12 +75,13 @@ export class System {
   }
 
   /**
-   * Runs the entire system for one frame. System stops when NMI from the
-   * PPU is raised.
+   * Runs the entire system for one frame. System stops when the PPU
+   * rolls over to a new frame
    */
-  public renderFrame() {
-    while (!this.nmiRaised) {
-      this.clock();
+  public renderFrame(withDebug: boolean = false) {
+    let lastFrame = this.ppu.frameCounter;
+    while (this.ppu.frameCounter === lastFrame) {
+      this.clock(withDebug);
     }
     this.nmiRaised = false;
   }

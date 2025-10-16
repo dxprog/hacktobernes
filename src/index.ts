@@ -2,7 +2,7 @@ import { Cart } from './cart/cart';
 import { CartLoader } from './cart/loader';
 import { System } from './system/system';
 
-const FRAME_LIMITER = 60;
+const FRAME_LIMITER = 25;
 
 class App {
   private system: System;
